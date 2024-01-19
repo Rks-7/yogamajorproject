@@ -34,5 +34,5 @@ app.get('/group1-shard1of1.bin', (req, res) => {
 // app.use('/users', userRoutes);
 // app.use('/accounts', accountRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
