@@ -69,8 +69,9 @@ function Mainpain() {
   }, [isPoseCorrect, poseTime, currentposeIndex]);
 
   const startNextPose = () => {
-    setIsPoseCorrect(false);
     stopPose();
+    setIsStartPose(true);
+    setIsPoseCorrect(false);
     setcurrentposeIndex((prevIndex) => {
       // Use the callback form of setcurrentPose to ensure the latest state value
       setcurrentPose((prevPose) => {
