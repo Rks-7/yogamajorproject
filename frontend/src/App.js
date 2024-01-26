@@ -5,16 +5,14 @@ import Home from './pages/Home/Home'
 import Yoga from './pages/Yoga/Yoga'
 import About from './pages/About/About'
 import Tutorials from './pages/Tutorials/Tutorials'
-import Pain from './pages/pain/Pain'
+import Pain from './pages/pain/Rootpain'
 import Mainpain from "./pages/pain/Mainpain"
+import Keypain from './pages/pain/Keypain'
 import './App.css'
 import {
-  RecoilRoot,
-  atom,
-  selector,
-  useRecoilState,
-  useRecoilValue,
+  RecoilRoot
 } from 'recoil';
+import Choice from './pages/pain/choice'
 
 
 export default function App() {
@@ -28,8 +26,10 @@ export default function App() {
         <Route path='/start' element={<Yoga />} />
         <Route path='/pain' element={<Pain />}/>
         <Route path='/about' element={<About />} />
+        <Route path='/keypain' element={<Keypain />} />
         <Route path='/mainpain' element={<Mainpain  />} />
         <Route path='/tutorials' element={<Tutorials />} />
+        <Route path='/choice' element={<Choice />} />
       </Routes>
     </Router>
     </RecoilRoot>

@@ -1,122 +1,91 @@
-import { useRecoilValue } from "recoil";
-import { painState } from "../../store/atom/currentpain";
-
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import * as tf from "@tensorflow/tfjs";
 import React, { useRef, useState, useEffect } from "react";
-import backend from "@tensorflow/tfjs-backend-webgl";
 import Webcam from "react-webcam";
 import { count } from "../../utils/music";
-
-import Instructions from "../../components/Instrctions/Instructions";
 
 //import wtf from '../temp/'
 
 import "../Yoga/Yoga.css";
-
 import { poseImages } from "../../utils/pose_images";
 import { POINTS, keypointConnections } from "../../utils/data";
 import { drawPoint, drawSegment } from "../../utils/helper";
-
+import { useRecoilValue, useSetRecoilState } from "recoil";
+import { painState } from "../../store/atom/currentpain";
+import  {currentposeState }from "../../store/atom/currentpose";
 let skeletonColor = "rgb(255,255,255)";
 
 let interval;
 
+const countAudio = new Audio(count);
 // flag variable is used to help capture the time when AI just detect
 // the pose as correct(probability more than threshold)
 let flag = false;
 
-function Mainpain() {
+function Keypain() {
   const pain = useRecoilValue(painState);
+  const pose = useRecoilValue(currentposeState);
+  console.log("currentpose " + pose.currentPose);
+  const setcurrentpose = useSetRecoilState(currentposeState);
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
 
   const [startingTime, setStartingTime] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [poseTime, setPoseTime] = useState(0);
-  const [currentposeIndex, setcurrentposeIndex] = useState(0);
-  const [isPoseCorrect, setIsPoseCorrect] = useState(false);
-  const [currentPose, setcurrentPose] = useState("Tree");
   const [isStartPose, setIsStartPose] = useState(false);
+  const [isPoseCorrect, setisPoseCorrect] = useState(false);
+  const [currentposeIndex, setcurrentposeIndex] = useState(0);
+  let poseList = pain.poseList;
+  let currentpose=pose.currentPose;
 
-  //   useEffect(() => {
-  //     setIsPoseCorrect(false);
-  //     setCurrentTime(0)
-  //     setPoseTime(0)
-  //   }, [currentPose])
+  const startNextPose = () => {
+    setisPoseCorrect(false);
+    setPoseTime(0);
+    runMovenet();
+    setIsStartPose(true);
+    setStartingTime(new Date(Date()).getTime());
+    setCurrentTime(new Date(Date()).getTime());
+  };
+
+  useEffect(() => {
+    if (isPoseCorrect && currentposeIndex < poseList.length - 1) {
+        countAudio.pause();
+        countAudio.currentTime = 0;
+      startNextPose();
+    }
+  }, [isPoseCorrect, currentposeIndex]);
 
   useEffect(() => {
     const timeDiff = (currentTime - startingTime) / 1000;
     if (flag) {
       setPoseTime(timeDiff);
-      console.log(timeDiff);
-      if (timeDiff >= 10) {
-        console.log("Condition met. Setting isPoseCorrect to true.");
-        setIsPoseCorrect(() => {
-          console.log("Updated isPoseCorrect: ");
-          return true;
+      if (timeDiff >= 5) {
+        setcurrentpose({
+            currentPose:poseList[currentposeIndex + 1]});
+        setcurrentposeIndex((prev) => {
+          return prev + 1;
         });
+        stopPose();
+        setisPoseCorrect(true);
       }
     }
-  }, [currentTime, poseTime, startingTime]);
+  }, [currentTime]);
 
-  useEffect(() => {
-    if (isPoseCorrect && currentposeIndex < pain.poseList.length - 1) {
-      console.log("startpose is called");
-      startNextPose();
-      
-    }
-  }, [isPoseCorrect, poseTime, currentposeIndex]);
-
-  const startNextPose = () => {
-    stopPose();
-    setIsStartPose(true);
-    setIsPoseCorrect(false);
-    setcurrentposeIndex((prevIndex) => {
-      // Use the callback form of setcurrentPose to ensure the latest state value
-      setcurrentPose((prevPose) => {
-        console.log("Previous pose: " + prevPose);
-        
-        console.log("Next pose: " + pain.poseList[++prevIndex]);
-        return pain.poseList[prevIndex];
-      });
-
-      // Reset timer for the new pose
-      setStartingTime(new Date(Date()).getTime());
-      setCurrentTime(new Date(Date()).getTime());
-
-      // Return the updated index
-      
-      return prevIndex ;
-    });
-    
-    
-  };
-  useEffect(()=>{
-    runMovenet();
-    console.log("runmovenet started");
-  },[currentPose,currentposeIndex])
-
-  //  const startNextPose=()=>{
-  //        setIsPoseCorrect(false);
-  //        setcurrentposeIndex((prevIndex) => prevIndex + 1);
-  //         setcurrentPose(pain.poseList[currentposeIndex]);
-  //         console.log("startnextposeeeeeeee : "+pain.poseList[currentposeIndex])
-  //        // Reset timer for the new pose
-  //     setStartingTime(new Date(Date()).getTime());
-  //     setCurrentTime(new Date(Date()).getTime());
-  //    }
-
+//   useEffect(() => {
+//     setCurrentTime(0);
+//     setPoseTime(0);
+//   }, [currentpose]);
 
   const CLASS_NO = {
     Chair: 3,
-    Cobra: 10,
-    Dog: 8,
-    No_Pose: 7,
+    Cobra: 1,
+    Dog: 2,
+    No_Pose: 8,
     Shoulderstand: 4,
     Traingle: 5,
     Tree: 11,
-    Warrior: 2,
+    Warrior: 7,
     Crescent: 0,
   };
 
@@ -181,9 +150,7 @@ function Mainpain() {
     return embedding;
   }
 
-  //   
   const runMovenet = async () => {
-    console.log("runmovenet")
     const detectorConfig = {
       modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
     };
@@ -211,8 +178,8 @@ function Mainpain() {
     // })
     // .catch(error => console.error(error));
 
-    //   console.log(typeof poseClassifier);
-    const countAudio = new Audio(count);
+    // console.log(typeof poseClassifier);
+    
     countAudio.loop = true;
     interval = setInterval(() => {
       detectPose(detector, poseClassifier, countAudio);
@@ -228,12 +195,12 @@ function Mainpain() {
       let notDetected = 0;
       const video = webcamRef.current.video;
       const pose = await detector.estimatePoses(video);
-      //   console.log(pose)
+      //   console.log(pose);
       const ctx = canvasRef.current.getContext("2d");
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       try {
         const keypoints = pose[0].keypoints;
-
+        // console.log("201");
         let input = keypoints.map((keypoint) => {
           if (keypoint.score > 0.4) {
             if (
@@ -241,8 +208,8 @@ function Mainpain() {
             ) {
               drawPoint(ctx, keypoint.x, keypoint.y, 8, "rgb(255,255,255)");
               let connections = keypointConnections[keypoint.name];
-
-              //   console.log(connections)
+              //   console.log("207");
+              //   console.log(connections);
               try {
                 connections.forEach((connection) => {
                   let conName = connection.toUpperCase();
@@ -267,15 +234,15 @@ function Mainpain() {
           skeletonColor = "rgb(255,255,255)";
           return;
         }
-        // console.log('process')
+        // console.log("process");
         const processedInput = landmarks_to_embedding(input);
         const classification = poseClassifier.predict(processedInput);
-        // console.log('classifications: '+classification)
+        // console.log("classifications: " + classification);
 
         classification.array().then((data) => {
-          //   console.log(data)
-          const classNo = CLASS_NO[currentPose];
-          console.log("classno "+classNo);
+          console.log("classNo " + currentpose);
+          const classNo = CLASS_NO[currentpose];
+          //   console.log(data[0][classNo]);
           if (data[0][classNo] > 0.97) {
             if (!flag) {
               countAudio.play();
@@ -289,8 +256,6 @@ function Mainpain() {
             skeletonColor = "rgb(255,255,255)";
             countAudio.pause();
             countAudio.currentTime = 0;
-            // console.log("hello")
-            // console.log("pose done for 10 secs"+isPoseCorrect)
           }
         });
       } catch (err) {
@@ -301,8 +266,6 @@ function Mainpain() {
 
   function startYoga() {
     setIsStartPose(true);
-    setcurrentPose(pain.poseList[0]);
-    setcurrentposeIndex(0);
     runMovenet();
   }
 
@@ -345,11 +308,7 @@ function Mainpain() {
             }}
           ></canvas>
           <div>
-            <img
-              src={poseImages[currentPose]}
-              alt="poseimage"
-              className="pose-img"
-            />
+            <img src={poseImages[currentpose]} className="pose-img" />
           </div>
         </div>
         <button onClick={stopPose} className="secondary-btn">
@@ -361,39 +320,6 @@ function Mainpain() {
 
   return (
     <div className="yoga-container">
-      {/* <div
-        className='dropdown dropdown-container'
-         
-      >
-        {/* <button 
-            className="btn btn-secondary dropdown-toggle"
-            type='button'
-            data-bs-toggle="dropdown"
-            id="pose-dropdown-btn"
-            aria-expanded="false"
-        >{pain.currentType}
-        </button> */}
-      {/* <ul class="dropdown-menu dropdown-custom-menu" aria-labelledby="dropdownMenuButton1">
-            {typeList.map((pose) => (
-                <li onClick={() => setCurrentType(pose)}>
-                    <div class="dropdown-item-container">
-                        <p className="dropdown-item-1">{pose}</p>
-                        {/* <img 
-                            src={poseImages[pose]}
-                            className="dropdown-img"
-                        /> */}
-      {/*                         
-                    </div>
-                </li>
-            ))}
-            
-        </ul> */}
-
-      {/* </div>  */}
-
-      {/* <Instructions
-          currentPose={currentPose}
-        /> */}
       <button onClick={startYoga} className="secondary-btn">
         Start Pose
       </button>
@@ -401,4 +327,4 @@ function Mainpain() {
   );
 }
 
-export default Mainpain;
+export default Keypain;

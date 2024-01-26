@@ -5,6 +5,5 @@ export const painState=atom({
     default:{
         currentType:"",
         poseList:null,
-        currentPose:""
     },
 });
